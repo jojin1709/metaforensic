@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { FolderCheck, Upload, Loader2, CheckCircle2, AlertTriangle, Fingerprint } from "lucide-react";
+import { useState, useCallback } from "react";
+import { FolderCheck, Upload, Loader2, CheckCircle2, AlertTriangle, Fingerprint, Trash2, Download } from "lucide-react";
 import Card from "./Card";
 import { extractExif, ExifResult } from "@/lib/exif";
 import { loadImageFromFile, computeDHash, hammingDistanceHex } from "@/lib/imageAnalysis";
 
 interface BatchItem {
+  id: string;
   file: File;
   exif?: ExifResult;
   dhash?: string;
@@ -15,34 +16,79 @@ interface BatchItem {
 
 export default function BatchAnalysisView() {
   const [items, setItems] = useState<BatchItem[]>([]);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFiles = async (filesList: FileList) => {
-    const newItems: BatchItem[] = Array.from(filesList).map((file) => ({
+  const processFiles = useCallback(async (filesList: FileList | File[]) => {
+    const fileArray = Array.from(filesList);
+    const newItems: BatchItem[] = fileArray.map((file) => ({
+      id: crypto.randomUUID(),
       file,
       status: "pending",
     }));
-    setItems(newItems);
-    setAnalyzing(true);
+
+    setItems((prev) => [...prev, ...newItems]);
 
     for (let i = 0; i < newItems.length; i++) {
-      newItems[i].status = "processing";
-      setItems([...newItems]);
+      const targetId = newItems[i].id;
+      setItems((prev) =>
+        prev.map((item) => (item.id === targetId ? { ...item, status: "processing" } : item))
+      );
 
       try {
         const exif = await extractExif(newItems[i].file);
         const img = await loadImageFromFile(newItems[i].file);
         const dhash = await computeDHash(img);
 
-        newItems[i].exif = exif;
-        newItems[i].dhash = dhash;
-        newItems[i].status = "done";
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === targetId ? { ...item, exif, dhash, status: "done" } : item
+          )
+        );
       } catch {
-        newItems[i].status = "error";
+        setItems((prev) =>
+          prev.map((item) => (item.id === targetId ? { ...item, status: "error" } : item))
+        );
       }
-      setItems([...newItems]);
     }
-    setAnalyzing(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processFiles(e.dataTransfer.files);
+      }
+    },
+    [processFiles]
+  );
+
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const exportBatchCsv = () => {
+    const csvRows = [
+      ["Filename", "Make", "Model", "Timestamp", "Latitude", "Longitude", "dHash"].join(","),
+      ...items.map((i) =>
+        [
+          `"${i.file.name}"`,
+          `"${i.exif?.make || "N/A"}"`,
+          `"${i.exif?.model || "N/A"}"`,
+          `"${i.exif?.timestamps?.[0]?.value || "N/A"}"`,
+          i.exif?.gps ? i.exif.gps.lat : "",
+          i.exif?.gps ? i.exif.gps.lon : "",
+          `"${i.dhash || ""}"`,
+        ].join(",")
+      ),
+    ];
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `metaforensic-batch-export-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -51,29 +97,54 @@ export default function BatchAnalysisView() {
         <FolderCheck className="text-safelight" /> Multi-File Batch Evidence Analysis
       </h2>
 
-      {/* Multi File Dropzone */}
-      <div className="rounded-xl border border-dashed border-panelBorder p-8 text-center bg-panel mb-6 hover:border-safelight/50 transition-colors">
+      {/* Multi File Dropzone with full Drag & Drop handlers */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className={`rounded-xl border border-dashed p-8 text-center bg-panel mb-6 transition-colors ${
+          isDragging ? "border-safelight bg-safelight/10" : "border-panelBorder hover:border-safelight/50"
+        }`}
+      >
         <input
           type="file"
           accept="image/*"
           multiple
           id="batch-file-input"
           className="hidden"
-          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+          onChange={(e) => e.target.files && processFiles(e.target.files)}
         />
         <label htmlFor="batch-file-input" className="cursor-pointer space-y-2 block">
           <Upload size={32} className="mx-auto text-muted" />
           <span className="block text-sm font-bold text-paper">
-            Drop multiple evidence photos here, or click to browse
+            {isDragging ? "Drop multiple evidence photos now" : "Drop multiple evidence photos here, or click to browse"}
           </span>
           <span className="block text-xs text-muted">
-            Processes multiple evidence items simultaneously to detect camera clusters, timeline gaps, and duplicate hashes.
+            Processes multiple evidence items to detect camera clusters, timeline gaps, and duplicate hashes.
           </span>
         </label>
       </div>
 
       {items.length > 0 && (
         <Card icon={FolderCheck} title="Evidence Batch Matrix" tag={`${items.length} files`}>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={exportBatchCsv}
+              className="inline-flex items-center gap-1.5 bg-safelight text-void font-bold text-xs px-3 py-1.5 rounded-lg hover:bg-safelight/90 transition-colors"
+            >
+              <Download size={13} /> Export CSV Summary
+            </button>
+            <button
+              onClick={() => setItems([])}
+              className="text-xs text-muted hover:text-safelight transition-colors"
+            >
+              Clear All
+            </button>
+          </div>
+
           <div className="rounded-xl border border-panelBorder bg-void overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -85,11 +156,11 @@ export default function BatchAnalysisView() {
                   <th className="p-3 font-bold">GPS</th>
                   <th className="p-3 font-bold">Perceptual Hash (dHash)</th>
                   <th className="p-3 font-bold">Cross-File Duplicate</th>
+                  <th className="p-3 font-bold text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-panelBorder/30">
                 {items.map((item, idx) => {
-                  // Check cross-file duplicate perceptual hash match
                   let isDuplicate = false;
                   if (item.dhash) {
                     isDuplicate = items.some(
@@ -98,7 +169,7 @@ export default function BatchAnalysisView() {
                   }
 
                   return (
-                    <tr key={idx} className="hover:bg-panel/40 transition-colors">
+                    <tr key={item.id} className="hover:bg-panel/40 transition-colors">
                       <td className="p-3">
                         {item.status === "processing" ? (
                           <Loader2 size={14} className="animate-spin text-safelight" />
@@ -135,6 +206,15 @@ export default function BatchAnalysisView() {
                         ) : (
                           <span className="text-muted/40">Unique</span>
                         )}
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="p-1 text-muted hover:text-safelight transition-colors"
+                          title="Remove file"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   );

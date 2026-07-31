@@ -7,7 +7,7 @@ export interface ImageChunk {
 }
 
 export interface ChunkResult {
-  format: "PNG" | "WEBP" | "JPEG" | "UNKNOWN";
+  format: "PNG" | "WEBP" | "JPEG" | "TIFF" | "HEIC" | "UNKNOWN";
   chunks: ImageChunk[];
   notes: string[];
 }
@@ -66,7 +66,7 @@ export function inspectImageChunks(buffer: ArrayBuffer, filename: string): Chunk
         isStandard,
       });
 
-      offset += 12 + Math.max(0, length); // 4 len + 4 name + data + 4 CRC
+      offset += 12 + Math.max(0, length);
       if (name === "IEND") break;
     }
 
@@ -116,11 +116,40 @@ export function inspectImageChunks(buffer: ArrayBuffer, filename: string): Chunk
         isStandard: true,
       });
 
-      offset += 8 + Math.max(0, length) + (length % 2); // Padded to even byte
+      offset += 8 + Math.max(0, length) + (length % 2);
     }
     notes.push("Parsed WebP RIFF container structure.");
     return { format: "WEBP", chunks, notes };
   }
 
-  return { format: "JPEG", chunks: [], notes: ["Container format is JPEG or non-chunked format."] };
+  // Check TIFF Signature: 49 49 2A 00 (II*) or 4D 4D 00 2A (MM*)
+  const isTiff =
+    bytes.length >= 4 &&
+    ((bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2a && bytes[3] === 0x00) ||
+      (bytes[0] === 0x4d && bytes[1] === 0x4d && bytes[2] === 0x00 && bytes[3] === 0x2a));
+
+  if (isTiff) {
+    notes.push("TIFF container format (Uncompressed / Lossless tag container).");
+    return { format: "TIFF", chunks: [], notes };
+  }
+
+  // Check HEIC / AVIF Signature: "ftypheic", "ftypheim", "ftypmif1"
+  const isHeic =
+    bytes.length >= 12 &&
+    bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
+
+  if (isHeic) {
+    notes.push("HEIC / High Efficiency Image Container format.");
+    return { format: "HEIC", chunks: [], notes };
+  }
+
+  // Check JPEG Signature: FF D8 FF
+  const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+
+  if (isJpeg) {
+    notes.push("JPEG JFIF / EXIF container format.");
+    return { format: "JPEG", chunks: [], notes };
+  }
+
+  return { format: "UNKNOWN", chunks: [], notes: ["Unknown binary container signature."] };
 }

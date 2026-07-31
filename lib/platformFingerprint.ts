@@ -12,17 +12,28 @@ export function detectPlatformFingerprint(
 ): PlatformFingerprint {
   const details: string[] = [];
   const name = file.name.toLowerCase();
-  const software = (rawExif.Software || "").toString();
+  const software = (rawExif.Software || "").toString().toLowerCase();
+
+  // Strict regex for WhatsApp export filenames: IMG-20230101-WA0001 or WhatsApp Image ...
+  const isWhatsAppName =
+    /^img-\d{8}-wa\d{4}/i.test(name) ||
+    name.startsWith("whatsapp image") ||
+    name.includes("whatsapp") ||
+    software.includes("whatsapp");
+
+  // Strict regex for Telegram export filenames: photo_2023-01-01... or telegram...
+  const isTelegramName =
+    /^photo_\d{4}-\d{2}-\d{2}/i.test(name) ||
+    name.startsWith("telegram") ||
+    software.includes("telegram");
 
   // 1. WhatsApp Detection
   if (
-    name.includes("wa") ||
-    name.startsWith("img-") ||
-    software.includes("whatsapp") ||
-    (width && height && (width === 1600 || height === 1600 || width === 1280 || height === 1280) && !rawExif.Make)
+    isWhatsAppName ||
+    (width && height && (width === 1600 || height === 1600 || width === 1280 || height === 1280) && !rawExif.Make && !rawExif.Model)
   ) {
     details.push("Dimensions fit WhatsApp web/mobile compression standards (1600px max).");
-    details.push("All EXIF tags stripped (No camera make or GPS coordinates found).");
+    details.push("All EXIF camera tags stripped (No camera make or GPS coordinates found).");
     return {
       detected: "WhatsApp Compression Fingerprint",
       confidence: "High",
@@ -31,8 +42,8 @@ export function detectPlatformFingerprint(
   }
 
   // 2. Telegram Detection
-  if (name.includes("telegram") || name.startsWith("photo_") || (width === 1280 && !rawExif.Make)) {
-    details.push("Standard Telegram photo export naming or 1280px dimension limit.");
+  if (isTelegramName) {
+    details.push("Standard Telegram photo export naming pattern detected.");
     details.push("Camera & sensor EXIF headers removed.");
     return {
       detected: "Telegram Compression Fingerprint",
@@ -45,7 +56,7 @@ export function detectPlatformFingerprint(
   if (
     rawExif.FBMD ||
     rawExif.FBAV ||
-    name.includes("fb") ||
+    name.includes("facebook") ||
     name.includes("instagram") ||
     software.includes("facebook")
   ) {
@@ -59,8 +70,8 @@ export function detectPlatformFingerprint(
   }
 
   // 4. Adobe Photoshop / GIMP / Editing Software
-  if (software.toLowerCase().includes("photoshop") || software.toLowerCase().includes("gimp") || rawExif.History) {
-    details.push(`Image exported from desktop editor: ${software || "Adobe Photoshop / GIMP"}`);
+  if (software.includes("photoshop") || software.includes("gimp") || rawExif.History) {
+    details.push(`Image exported from desktop editor: ${rawExif.Software || "Adobe Photoshop / GIMP"}`);
     if (rawExif.History) details.push("XMP editing history trail detected in file headers.");
     return {
       detected: "Desktop Photo Editor (Photoshop / GIMP)",
@@ -70,7 +81,7 @@ export function detectPlatformFingerprint(
   }
 
   // 5. Apple iOS Camera / Screenshot
-  if (rawExif.Make === "Apple" || software.includes("iOS") || name.startsWith("img_")) {
+  if (rawExif.Make === "Apple" || software.includes("ios") || /^img_\d{4}/i.test(name)) {
     details.push(`Captured by Apple iOS device (${rawExif.Model || "iPhone/iPad"}).`);
     if (rawExif.HostComputer) details.push(`Host device: ${rawExif.HostComputer}`);
     return {
@@ -82,7 +93,7 @@ export function detectPlatformFingerprint(
 
   // 6. Generic Camera EXIF Present
   if (rawExif.Make || rawExif.Model) {
-    details.push(`Original hardware EXIF present: ${rawExif.Make} ${rawExif.Model}`);
+    details.push(`Original hardware EXIF present: ${rawExif.Make || ""} ${rawExif.Model || ""}`);
     return {
       detected: "Original Hardware Capture (Unstripped)",
       confidence: "Clean / Original",

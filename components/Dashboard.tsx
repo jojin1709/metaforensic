@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import {
   Camera,
@@ -18,13 +18,15 @@ import {
   FileCode2,
   Binary,
   Printer,
+  History,
+  Trash2,
 } from "lucide-react";
 import Card from "./Card";
 import { extractExif, extractThumbnail, ExifResult } from "@/lib/exif";
 import { analyzeFileStructure, FileStructureResult } from "@/lib/fileStructure";
 import { loadImageFromFile, runELA, computeDHash, hammingDistanceHex } from "@/lib/imageAnalysis";
 import { reverseGeocode } from "@/lib/geocode";
-import { getHistory, addHistoryEntry, HistoryEntry } from "@/lib/history";
+import { getHistory, addHistoryEntry, clearHistory, HistoryEntry } from "@/lib/history";
 import { detectPlatformFingerprint, PlatformFingerprint } from "@/lib/platformFingerprint";
 
 import VisualForensicsPanel from "./VisualForensicsPanel";
@@ -66,9 +68,9 @@ export default function Dashboard({ file, onReset }: Props) {
   const [loadedImgElement, setLoadedImgElement] = useState<HTMLImageElement | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Tab State
   const [activeTab, setActiveTab] = useState<"overview" | "visual" | "metadata" | "stego">("overview");
   const [showPrintReport, setShowPrintReport] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +112,7 @@ export default function Dashboard({ file, onReset }: Props) {
           dhash,
           analyzedAt: new Date().toISOString(),
         });
+        setSessionHistory(getHistory());
 
         let address: string | null = null;
         if (exif.gps) {
@@ -149,6 +152,7 @@ export default function Dashboard({ file, onReset }: Props) {
       address: report.address,
       fileStructure: report.structure,
       perceptualHash: report.dhash,
+      rawExif: report.exif.raw, // Full raw tag dump export
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -157,6 +161,11 @@ export default function Dashboard({ file, onReset }: Props) {
     a.download = `metaforensic-report-${file.name.replace(/\.[^.]+$/, "")}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleClearHistory = () => {
+    clearHistory();
+    setSessionHistory([]);
   };
 
   const loading = !report && !error;
@@ -220,7 +229,7 @@ export default function Dashboard({ file, onReset }: Props) {
                   onClick={exportJson}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-safelight text-void font-bold text-xs px-3.5 py-2 hover:bg-safelight/90 transition-colors font-mono"
                 >
-                  <Download size={14} /> Export JSON
+                  <Download size={14} /> Export JSON (with Raw EXIF)
                 </button>
                 <button
                   onClick={() => setShowPrintReport(true)}
@@ -230,7 +239,7 @@ export default function Dashboard({ file, onReset }: Props) {
                 </button>
               </div>
 
-              {/* Warning Badges */}
+              {/* Warning & Match Badges */}
               <div className="flex flex-wrap gap-2">
                 {report.exif.timestampMismatch && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-mono text-safelight border border-safelightDim rounded-full px-3 py-0.5">
@@ -240,6 +249,11 @@ export default function Dashboard({ file, onReset }: Props) {
                 {report.fingerprint.detected && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-mono text-data border border-dataDim rounded-full px-3 py-0.5">
                     {report.fingerprint.detected}
+                  </span>
+                )}
+                {report.matches.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-safelight border border-safelightDim rounded-full px-3 py-0.5">
+                    <Fingerprint size={11} /> seen {report.matches.length}x earlier this session
                   </span>
                 )}
               </div>
@@ -364,8 +378,48 @@ export default function Dashboard({ file, onReset }: Props) {
                 </dl>
               </Card>
 
-              <Card icon={Fingerprint} title="Perceptual Hash" delay={0.3} tag="dHash">
+              {/* Render Hash Matches Card */}
+              <Card icon={Fingerprint} title="Perceptual Hash & Matches" delay={0.3} tag="dHash">
                 <p className="font-mono text-sm text-data break-all">{report.dhash}</p>
+                {report.matches.length > 0 ? (
+                  <div className="mt-3 space-y-1 p-2 rounded-lg bg-void border border-panelBorder">
+                    <p className="text-xs text-safelight font-bold">Identical / Similar evidence seen earlier in session:</p>
+                    {report.matches.map((m) => (
+                      <p key={m.id} className="text-xs font-mono text-muted">
+                        • {m.filename} — {new Date(m.analyzedAt).toLocaleTimeString()}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">No duplicate perceptual hash matches found in local session.</p>
+                )}
+              </Card>
+
+              {/* Session History Viewer */}
+              <Card icon={History} title="Session Evidence History" delay={0.35} tag={`${sessionHistory.length} files`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted font-mono">Analyzed files history</span>
+                  {sessionHistory.length > 0 && (
+                    <button
+                      onClick={handleClearHistory}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono text-muted hover:text-safelight transition-colors"
+                    >
+                      <Trash2 size={12} /> Clear
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-32 overflow-y-auto space-y-1 font-mono text-xs">
+                  {sessionHistory.length > 0 ? (
+                    sessionHistory.map((h) => (
+                      <div key={h.id} className="flex justify-between text-muted hover:text-paper py-0.5">
+                        <span className="truncate max-w-[160px]">{h.filename}</span>
+                        <span className="text-[10px] text-data">{h.dhash.slice(0, 8)}...</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted text-xs">No session history yet.</p>
+                  )}
+                </div>
               </Card>
             </div>
           )}

@@ -1,26 +1,65 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ScanEye, UploadCloud, ShieldCheck } from "lucide-react";
+import { ScanEye, UploadCloud, ShieldCheck, AlertTriangle } from "lucide-react";
 
 interface Props {
   onFile: (file: File) => void;
 }
 
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
+
 export default function UploadZone({ onFile }: Props) {
   const [isDragging, setIsDragging] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const validateAndProcess = useCallback(
+    (file: File) => {
+      setErrorMsg(null);
+      if (file.size > MAX_FILE_SIZE) {
+        setErrorMsg(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the 25MB limit.`);
+        return;
+      }
+      onFile(file);
+    },
+    [onFile]
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
       const file = e.dataTransfer.files?.[0];
-      if (file && file.type.startsWith("image/")) onFile(file);
+      if (file && file.type.startsWith("image/")) validateAndProcess(file);
     },
-    [onFile]
+    [validateAndProcess]
   );
+
+  // Paste from clipboard support
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          const file = items[i].getAsFile();
+          if (file) validateAndProcess(file);
+          break;
+        }
+      }
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [validateAndProcess]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      inputRef.current?.click();
+    }
+  };
 
   return (
     <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-24">
@@ -45,7 +84,17 @@ export default function UploadZone({ onFile }: Props) {
           it left behind — the same evidence trail an OSINT analyst would chase by hand.
         </p>
 
+        {errorMsg && (
+          <div className="mt-6 p-3 rounded-xl bg-safelight/10 border border-safelight/40 text-safelight font-mono text-xs inline-flex items-center gap-2">
+            <AlertTriangle size={15} /> {errorMsg}
+          </div>
+        )}
+
         <motion.div
+          tabIndex={0}
+          role="button"
+          aria-label="Upload evidence image"
+          onKeyDown={handleKeyDown}
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragging(true);
@@ -57,7 +106,7 @@ export default function UploadZone({ onFile }: Props) {
             borderColor: isDragging ? "#FF4D3D" : "#22262B",
             scale: isDragging ? 1.01 : 1,
           }}
-          className="mt-12 relative mx-auto max-w-lg cursor-pointer rounded-2xl border-2 border-dashed bg-panel/60 backdrop-blur-sm px-8 py-14 group transition-colors"
+          className="mt-12 relative mx-auto max-w-lg cursor-pointer rounded-2xl border-2 border-dashed bg-panel/60 backdrop-blur-sm px-8 py-14 group transition-colors focus:outline-none focus:border-safelight"
         >
           <input
             ref={inputRef}
@@ -66,7 +115,7 @@ export default function UploadZone({ onFile }: Props) {
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) onFile(file);
+              if (file) validateAndProcess(file);
             }}
           />
           <div className="flex flex-col items-center gap-4">
@@ -82,7 +131,7 @@ export default function UploadZone({ onFile }: Props) {
             </div>
             <div>
               <p className="font-medium text-paper">
-                {isDragging ? "Drop it — running the scan" : "Drag a photo here, or click to browse"}
+                {isDragging ? "Drop it — running the scan" : "Drag a photo here, paste from clipboard, or click"}
               </p>
               <p className="text-sm text-muted mt-1">JPEG · PNG · HEIC · TIFF — up to 25MB</p>
             </div>
