@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ScanEye, GitCompare, FolderCheck, ShieldAlert } from "lucide-react";
+import { Camera, GitCompare, FolderCheck, ShieldCheck } from "lucide-react";
 import UploadZone from "@/components/UploadZone";
 import Dashboard from "@/components/Dashboard";
 import ImageCompareModal from "@/components/ImageCompareModal";
 import BatchAnalysisView from "@/components/BatchAnalysisView";
+import PrivacyPolicyModal from "@/components/PrivacyPolicyModal";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [appMode, setAppMode] = useState<"single" | "compare" | "batch">("single");
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   return (
     <main className="min-h-screen">
@@ -29,7 +31,7 @@ export default function Home() {
               appMode === "single" ? "bg-safelight text-void border-safelight font-bold" : "bg-void border-panelBorder text-muted hover:text-paper"
             }`}
           >
-            <ShieldAlert size={14} /> Single Evidence
+            <Camera size={14} /> Single Evidence
           </button>
           <button
             onClick={() => setAppMode("compare")}
@@ -50,7 +52,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main View Router */}
       {appMode === "single" && (
         !file ? (
           <UploadZone onFile={setFile} />
@@ -68,30 +69,48 @@ export default function Home() {
           MetaForensic runs entirely in your browser — images are parsed with canvas and EXIF
           libraries locally and never transmitted to a server. GPS lookups are resolved via the
           public OpenStreetMap Nominatim API, which does receive the coordinates found in a
-          photo's metadata (not the image itself) purely to resolve a place name.
+          photo&apos;s metadata (not the image itself) purely to resolve a place name.
         </p>
-        <p className="text-xs font-mono text-paper font-semibold flex flex-wrap items-center gap-2.5">
-          <span>Developed with ❤️ by <span className="text-safelight font-bold">JOJIN JOHN</span></span>
-          <span className="text-muted">•</span>
-          <a
-            href="https://www.linkedin.com/in/jojin-john/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-safelight hover:underline font-bold"
-          >
-            LinkedIn
-          </a>
-          <span className="text-muted">•</span>
-          <a
-            href="https://github.com/jojin1709"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-data hover:underline font-bold"
-          >
-            GitHub
-          </a>
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <p className="text-paper font-semibold flex flex-wrap items-center gap-2.5">
+            <span>Developed with ❤️ by <span className="text-safelight font-bold">JOJIN JOHN</span></span>
+            <span className="text-muted">•</span>
+            <a
+              href="https://www.linkedin.com/in/jojin-john/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-safelight hover:underline font-bold"
+            >
+              LinkedIn
+            </a>
+            <span className="text-muted">•</span>
+            <a
+              href="https://github.com/jojin1709"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-data hover:underline font-bold"
+            >
+              GitHub
+            </a>
+          </p>
+          <div className="flex items-center gap-3 text-muted">
+            <button
+              onClick={() => setShowPrivacyModal(true)}
+              className="hover:text-safelight flex items-center gap-1 transition-colors"
+            >
+              <ShieldCheck size={13} /> Privacy Policy
+            </button>
+            <span>•</span>
+            <a href="/sitemap.xml" target="_blank" className="hover:text-paper transition-colors">Sitemap</a>
+            <span>•</span>
+            <a href="/robots.txt" target="_blank" className="hover:text-paper transition-colors">Robots.txt</a>
+          </div>
+        </div>
       </footer>
+
+      {showPrivacyModal && (
+        <PrivacyPolicyModal onClose={() => setShowPrivacyModal(false)} />
+      )}
     </main>
   );
 }
