@@ -1,0 +1,17 @@
+{
+  "name": "MetaForensic — Image Forensics & OSINT Suite",
+  "short_name": "MetaForensic",
+  "description": "Autonomous Client-Side Browser Image Forensics and OSINT Verification Suite",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0C0E",
+  "theme_color": "#FF4D3D",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

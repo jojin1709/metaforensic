@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   Camera,
@@ -20,6 +20,10 @@ import {
   Printer,
   History,
   Trash2,
+  Sun,
+  Search,
+  FolderArchive,
+  ExternalLink,
 } from "lucide-react";
 import Card from "./Card";
 import { extractExif, extractThumbnail, ExifResult } from "@/lib/exif";
@@ -28,6 +32,7 @@ import { loadImageFromFile, runELA, computeDHash, hammingDistanceHex } from "@/l
 import { reverseGeocode } from "@/lib/geocode";
 import { getHistory, addHistoryEntry, clearHistory, HistoryEntry } from "@/lib/history";
 import { detectPlatformFingerprint, PlatformFingerprint } from "@/lib/platformFingerprint";
+import { calculateSolarPosition, SolarCalculationResult } from "@/lib/solarOsint";
 
 import VisualForensicsPanel from "./VisualForensicsPanel";
 import RawMetadataPanel from "./RawMetadataPanel";
@@ -50,6 +55,7 @@ interface FullReport {
   dhash: string;
   address: string | null;
   matches: HistoryEntry[];
+  solar?: SolarCalculationResult | null;
 }
 
 const STAGES = [
@@ -58,7 +64,7 @@ const STAGES = [
   "Extracting embedded thumbnail",
   "Running error level analysis",
   "Inspecting container structure",
-  "Computing perceptual hash",
+  "Computing perceptual hash & solar OSINT",
 ];
 
 export default function Dashboard({ file, onReset }: Props) {
@@ -115,14 +121,25 @@ export default function Dashboard({ file, onReset }: Props) {
         setSessionHistory(getHistory());
 
         let address: string | null = null;
+        let solar: SolarCalculationResult | null = null;
+
         if (exif.gps) {
           address = await reverseGeocode(exif.gps.lat, exif.gps.lon);
+
+          // Calculate Solar OSINT math if timestamp is present
+          const timeStr = exif.timestamps?.[0]?.value;
+          if (timeStr) {
+            const dateObj = new Date(timeStr);
+            if (!isNaN(dateObj.getTime())) {
+              solar = calculateSolarPosition(exif.gps.lat, exif.gps.lon, dateObj);
+            }
+          }
         }
 
         const fingerprint = detectPlatformFingerprint(file, exif.raw, exif.width, exif.height);
 
         if (cancelled) return;
-        setReport({ exif, structure, fingerprint, thumbnailUrl, elaUrl, dhash, address, matches });
+        setReport({ exif, structure, fingerprint, thumbnailUrl, elaUrl, dhash, address, matches, solar });
       } catch (e: any) {
         if (!cancelled) setError(e?.message || "Something went wrong reading this file.");
       }
@@ -150,15 +167,39 @@ export default function Dashboard({ file, onReset }: Props) {
       timestampMismatch: report.exif.timestampMismatch,
       gps: report.exif.gps,
       address: report.address,
+      solarOsint: report.solar,
       fileStructure: report.structure,
       perceptualHash: report.dhash,
-      rawExif: report.exif.raw, // Full raw tag dump export
+      rawExif: report.exif.raw,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `metaforensic-report-${file.name.replace(/\.[^.]+$/, "")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportMetaForensicCase = () => {
+    if (!report) return;
+    const caseData = {
+      version: "3.0",
+      type: "META_FORENSIC_CASE_FILE",
+      filename: file.name,
+      fileSizeBytes: file.size,
+      dhash: report.dhash,
+      exif: report.exif,
+      fingerprint: report.fingerprint,
+      solar: report.solar,
+      address: report.address,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(caseData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${file.name.replace(/\.[^.]+$/, "")}.metaforensic`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -235,7 +276,13 @@ export default function Dashboard({ file, onReset }: Props) {
                   onClick={() => setShowPrintReport(true)}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-void border border-safelight text-safelight font-bold text-xs px-3.5 py-2 hover:bg-safelight hover:text-void transition-colors font-mono"
                 >
-                  <Printer size={14} /> Print PDF Report
+                  <Printer size={14} /> Print Legal PDF Report
+                </button>
+                <button
+                  onClick={exportMetaForensicCase}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-void border border-panelBorder text-paper font-bold text-xs px-3.5 py-2 hover:bg-panel transition-colors font-mono"
+                >
+                  <FolderArchive size={14} className="text-data" /> Save .metaforensic Case
                 </button>
               </div>
 
@@ -343,7 +390,70 @@ export default function Dashboard({ file, onReset }: Props) {
                 </Card>
               )}
 
-              <Card icon={ImageIcon} title="Embedded Thumbnail" delay={0.15}>
+              {/* Solar OSINT Shadow Math Card */}
+              {report.solar ? (
+                <Card icon={Sun} title="Solar Orientation & Shadow Math" delay={0.12} tag="Solar OSINT">
+                  <div className="space-y-2 text-xs font-mono">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded bg-void border border-panelBorder">
+                        <span className="text-muted block text-[10px]">Sun Elevation Angle</span>
+                        <span className="text-safelight font-bold text-sm">{report.solar.elevation.toFixed(1)}°</span>
+                      </div>
+                      <div className="p-2 rounded bg-void border border-panelBorder">
+                        <span className="text-muted block text-[10px]">Sun Azimuth (Direction)</span>
+                        <span className="text-data font-bold text-sm">{report.solar.azimuth.toFixed(1)}°</span>
+                      </div>
+                    </div>
+                    <p className="text-muted">{report.solar.explanation}</p>
+                    <p className="text-[10px] text-muted">Solar Zenith Noon: <span className="text-paper">{report.solar.solarNoonUtc}</span></p>
+                  </div>
+                </Card>
+              ) : (
+                <Card icon={Sun} title="Solar Orientation & Shadow Math" delay={0.12}>
+                  <p className="text-muted text-xs font-mono">Requires both embedded GPS coordinates and capture timestamps to compute solar angle.</p>
+                </Card>
+              )}
+
+              {/* OSINT One-Click Reverse Image Search Shortcuts */}
+              <Card icon={Search} title="OSINT Reverse Image Search Shortcuts" delay={0.15} tag="OSINT">
+                <p className="text-xs text-muted font-mono mb-3">Open external OSINT search engines to match original source photos online:</p>
+                <div className="flex flex-wrap gap-2 text-xs font-mono">
+                  <a
+                    href="https://lens.google.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-void border border-panelBorder px-3 py-1.5 rounded-lg text-paper hover:border-safelight transition-colors"
+                  >
+                    <ExternalLink size={12} className="text-safelight" /> Google Lens
+                  </a>
+                  <a
+                    href="https://yandex.com/images/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-void border border-panelBorder px-3 py-1.5 rounded-lg text-paper hover:border-safelight transition-colors"
+                  >
+                    <ExternalLink size={12} className="text-data" /> Yandex Images
+                  </a>
+                  <a
+                    href="https://tineye.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-void border border-panelBorder px-3 py-1.5 rounded-lg text-paper hover:border-safelight transition-colors"
+                  >
+                    <ExternalLink size={12} className="text-paper" /> TinEye
+                  </a>
+                  <a
+                    href="https://pimeyes.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-void border border-panelBorder px-3 py-1.5 rounded-lg text-paper hover:border-safelight transition-colors"
+                  >
+                    <ExternalLink size={12} className="text-safelight" /> PimEyes
+                  </a>
+                </div>
+              </Card>
+
+              <Card icon={ImageIcon} title="Embedded Thumbnail" delay={0.18}>
                 {report.thumbnailUrl ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -378,7 +488,6 @@ export default function Dashboard({ file, onReset }: Props) {
                 </dl>
               </Card>
 
-              {/* Render Hash Matches Card */}
               <Card icon={Fingerprint} title="Perceptual Hash & Matches" delay={0.3} tag="dHash">
                 <p className="font-mono text-sm text-data break-all">{report.dhash}</p>
                 {report.matches.length > 0 ? (
