@@ -33,8 +33,8 @@ export default function PrintableReport({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-void/95 overflow-y-auto p-4 md:p-8 font-mono">
-      <div className="max-w-4xl mx-auto bg-panel border border-panelBorder rounded-2xl p-8 shadow-2xl text-paper print:border-none print:shadow-none print:bg-white print:text-black">
+    <div className="printable-report-modal fixed inset-0 z-50 bg-void/95 overflow-y-auto p-4 md:p-8 font-mono">
+      <div className="printable-report-card max-w-4xl mx-auto bg-panel border border-panelBorder rounded-2xl p-8 shadow-2xl text-paper">
         {/* Printable Header Controls */}
         <div className="flex items-center justify-between border-b border-panelBorder pb-6 mb-6 print:hidden">
           <div className="flex items-center gap-2">
@@ -56,16 +56,16 @@ export default function PrintableReport({
 
         {/* Official Report Title Block */}
         <div className="text-center mb-8 border-b border-panelBorder pb-6">
-          <h1 className="text-2xl font-bold text-safelight tracking-wide uppercase">METAFORENSIC EVIDENCE REPORT</h1>
+          <h1 className="text-2xl font-bold text-safelight print-text-accent tracking-wide uppercase">METAFORENSIC EVIDENCE REPORT</h1>
           <p className="text-xs text-muted mt-1">Generated: {new Date().toUTCString()}</p>
           <p className="text-xs text-muted">Evidence ID: {crypto.randomUUID()}</p>
         </div>
 
         {/* Executive Summary */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8 print:block print:space-y-4">
           <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt="Evidence" className="w-full h-56 object-cover rounded-xl border border-panelBorder" />
+            <img src={imageUrl} alt="Evidence" className="w-full h-56 object-cover rounded-xl border border-panelBorder print:h-48 print:object-contain" />
           </div>
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-lg bg-void border border-panelBorder space-y-1">
@@ -74,7 +74,7 @@ export default function PrintableReport({
             </div>
             <div className="p-3 rounded-lg bg-void border border-panelBorder space-y-1">
               <span className="text-muted block">Platform Fingerprint</span>
-              <span className="text-safelight font-bold">{fingerprint.detected} ({fingerprint.confidence})</span>
+              <span className="text-safelight print-text-accent font-bold">{fingerprint.detected} ({fingerprint.confidence})</span>
             </div>
             <div className="p-3 rounded-lg bg-void border border-panelBorder space-y-1">
               <span className="text-muted block">Perceptual Hash (dHash)</span>
@@ -85,7 +85,7 @@ export default function PrintableReport({
 
         {/* Warnings & Anomalies */}
         {(exif.timestampMismatch || structure.recompressionLikely) && (
-          <div className="p-4 rounded-xl bg-safelight/10 border border-safelight/40 mb-8 text-xs text-safelight space-y-1">
+          <div className="p-4 rounded-xl bg-safelight/10 border border-safelight/40 mb-8 text-xs text-safelight print-text-accent space-y-1">
             <div className="flex items-center gap-2 font-bold text-sm mb-1">
               <AlertTriangle size={16} /> Forensic Anomalies Detected
             </div>
@@ -95,44 +95,44 @@ export default function PrintableReport({
         )}
 
         {/* Metadata & Technical Specs */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8 text-xs">
+        <div className="grid md:grid-cols-2 gap-6 mb-8 text-xs print:grid-cols-2">
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-safelight border-b border-panelBorder pb-1">Hardware & Camera EXIF</h3>
+            <h3 className="text-sm font-bold text-safelight print-text-accent border-b border-panelBorder pb-1">Hardware & Camera EXIF</h3>
             <div className="space-y-1 text-muted">
-              <p><span className="text-paper">Make:</span> {exif.make || "N/A"}</p>
-              <p><span className="text-paper">Model:</span> {exif.model || "N/A"}</p>
-              <p><span className="text-paper">Software:</span> {exif.software || "N/A"}</p>
-              <p><span className="text-paper">Dimensions:</span> {exif.width} × {exif.height}</p>
-              <p><span className="text-paper">Exposure / ISO:</span> {exif.exposure || "N/A"} / ISO {exif.iso || "N/A"}</p>
+              <p><span className="text-paper font-semibold">Make:</span> {exif.make || "N/A"}</p>
+              <p><span className="text-paper font-semibold">Model:</span> {exif.model || "N/A"}</p>
+              <p><span className="text-paper font-semibold">Software:</span> {exif.software || "N/A"}</p>
+              <p><span className="text-paper font-semibold">Dimensions:</span> {exif.width} × {exif.height}</p>
+              <p><span className="text-paper font-semibold">Exposure / ISO:</span> {exif.exposure || "N/A"} / ISO {exif.iso || "N/A"}</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-safelight border-b border-panelBorder pb-1">Geospatial & Container</h3>
+            <h3 className="text-sm font-bold text-safelight print-text-accent border-b border-panelBorder pb-1">Geospatial & Container</h3>
             <div className="space-y-1 text-muted">
               {exif.gps ? (
                 <>
-                  <p><span className="text-paper">Coordinates:</span> {exif.gps.lat.toFixed(6)}, {exif.gps.lon.toFixed(6)}</p>
-                  <p><span className="text-paper">Address:</span> {address || "Resolving location..."}</p>
+                  <p><span className="text-paper font-semibold">Coordinates:</span> {exif.gps.lat.toFixed(6)}, {exif.gps.lon.toFixed(6)}</p>
+                  <p><span className="text-paper font-semibold">Address:</span> {address || "Resolving location..."}</p>
                 </>
               ) : (
                 <p>No GPS coordinates embedded in file.</p>
               )}
-              <p><span className="text-paper">File Size:</span> {(structure.fileSizeBytes / 1024).toFixed(1)} KB</p>
-              <p><span className="text-paper">Trailing Bytes:</span> {structure.trailingBytes}</p>
+              <p><span className="text-paper font-semibold">File Size:</span> {(structure.fileSizeBytes / 1024).toFixed(1)} KB</p>
+              <p><span className="text-paper font-semibold">Trailing Bytes:</span> {structure.trailingBytes}</p>
             </div>
           </div>
         </div>
 
         {/* ELA Heatmap Render */}
-        <div className="mb-8">
-          <h3 className="text-sm font-bold text-safelight border-b border-panelBorder pb-2 mb-3">Error Level Analysis (ELA) Recompression Map</h3>
+        <div className="mb-8 print:break-inside-avoid">
+          <h3 className="text-sm font-bold text-safelight print-text-accent border-b border-panelBorder pb-2 mb-3">Error Level Analysis (ELA) Recompression Map</h3>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={elaUrl} alt="ELA Map" className="w-full h-48 object-cover rounded-xl border border-panelBorder" />
+          <img src={elaUrl} alt="ELA Map" className="w-full h-48 object-cover rounded-xl border border-panelBorder print:h-40 print:object-contain" />
         </div>
 
         <div className="text-center text-[10px] text-muted border-t border-panelBorder pt-4">
-          Report generated by MetaForensic Lab • Client-side verification suite
+          Report generated by MetaForensic Lab • Client-side verification suite • Developed by JOJIN JOHN
         </div>
       </div>
     </div>

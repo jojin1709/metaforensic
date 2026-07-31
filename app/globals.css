@@ -57,3 +57,50 @@ input:focus-visible,
   background: #131518 !important;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+/* Print Stylesheet Overrides */
+@media print {
+  @page {
+    margin: 1cm;
+    size: auto;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body > main {
+    display: none !important;
+  }
+
+  .printable-report-modal {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .printable-report-card {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .printable-report-card * {
+    color: #111111 !important;
+    border-color: #e2e8f0 !important;
+    background-color: transparent !important;
+  }
+
+  .print-text-accent {
+    color: #dc2626 !important;
+  }
+}
