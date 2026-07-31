@@ -9,7 +9,7 @@ interface Props {
   onFile: (file: File) => void;
 }
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
+const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB limit
 
 export default function UploadZone({ onFile }: Props) {
   const [isDragging, setIsDragging] = useState(false);
@@ -20,9 +20,9 @@ export default function UploadZone({ onFile }: Props) {
     async (file: File) => {
       setErrorMsg(null);
 
-      // 1. File Size Validation
+      // 1. File Size Validation (2GB limit)
       if (file.size > MAX_FILE_SIZE) {
-        setErrorMsg(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the 25MB limit.`);
+        setErrorMsg(`File size (${(file.size / (1024 * 1024 * 1024)).toFixed(1)}GB) exceeds the 2GB limit.`);
         return;
       }
 
@@ -143,7 +143,7 @@ export default function UploadZone({ onFile }: Props) {
               <p className="font-medium text-paper">
                 {isDragging ? "Drop it — running security scan" : "Drag a photo here, paste from clipboard, or click"}
               </p>
-              <p className="text-sm text-muted mt-1">JPEG · PNG · HEIC · TIFF — up to 25MB</p>
+              <p className="text-sm text-muted mt-1">JPEG · PNG · HEIC · TIFF · RAW — up to 2GB</p>
               <p className="text-[11px] text-muted/60 mt-1 flex items-center justify-center gap-1">
                 <Lock size={11} className="text-data" /> Executable scripts & web shells automatically blocked
               </p>
