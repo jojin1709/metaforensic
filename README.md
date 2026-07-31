@@ -21,7 +21,7 @@
   </a>
 </p>
 
-Drop an image to extract hidden device EXIF headers, GPS coordinates, timestamp anomalies, Error Level Analysis (ELA) heatmaps, LSB steganography bit planes, color channels, clone detection, side-by-side comparison, Solar OSINT math, and SHA-256 legal PDF evidence reports.
+Drop an image to extract hidden device EXIF headers, GPS coordinates, timestamp anomalies, Error Level Analysis (ELA) heatmaps, LSB steganography bit planes, JPEG DQT quantization matrices, C2PA AI signatures, color channels, side-by-side comparison, Solar OSINT math, and SHA-256 legal PDF evidence reports.
 
 ---
 
@@ -36,7 +36,6 @@ Drop an image to extract hidden device EXIF headers, GPS coordinates, timestamp 
 - [Access the Web Application](#access-the-web-application)
 - [Key Capabilities](#key-capabilities)
 - [Architecture & Analysis Workflow](#architecture--analysis-workflow)
-- [Future Technical Roadmap](#future-technical-roadmap)
 - [Security & Privacy Model](#security--privacy-model)
 - [Author & Credits](#author--credits)
 - [License](#license)
@@ -72,35 +71,43 @@ MetaForensic is deployed as a zero-installation, instant web application accessi
 - **NOAA Solar Position Engine**: Computes real-world Sun Elevation Angle, Azimuth (Compass Direction), and Solar Zenith Noon UTC from embedded GPS coordinates and capture timestamps.
 - **Shadow Direction Verification**: Automatically audits whether shadow direction in the photo matches real-world solar physics to catch manipulated lighting or deepfakes.
 
-### 2. ⚖️ Court-Admissible Legal PDF Dossier
+### 2. 🤖 C2PA & AI Synthetic Media Verifier
+- **AI Generator Detection**: Identifies synthetic generation signatures from **Midjourney**, **DALL-E 3**, and **Stable Diffusion**.
+- **C2PA Provenance Signature Inspector**: Reads embedded Content Authenticity Initiative (C2PA) cryptographic assertions.
+
+### 3. 📊 JPEG DQT Quantization Matrix Profiler
+- **Double-Compression Analysis**: Extracts raw 8x8 **Define Quantization Tables (DQT)** (Luminance & Chrominance matrices) from JPEG headers.
+- **Quality & Compression Audit**: Estimates JPEG compression quality percentage and triggers forensic alerts when matrix variance indicates double JPEG compression.
+
+### 4. ⚖️ Court-Admissible Legal PDF Dossier
 - **Cryptographic Chain of Custody**: Computes real **SHA-256 evidence hashes** for uploaded files.
 - **Custom Case Inputs**: Allows inputting Case Numbers, Investigator Names, and Department/Agency titles directly into exported single-page PDF evidence reports.
 
-### 3. 🔍 OSINT One-Click Reverse Image Search Shortcuts
+### 5. 🔍 OSINT One-Click Reverse Image Search Shortcuts
 - **Direct Search Engine Shortcuts**: Instant 1-click search shortcuts to query evidence images across **Google Lens**, **Yandex Images**, **TinEye**, and **PimEyes**.
 
-### 4. 💼 Portable `.metaforensic` Case File Saver
+### 6. 💼 Portable `.metaforensic` Case File Saver
 - **Investigation Session Bundles**: Save and re-import complete forensic analysis states, metadata, and hash records into `.metaforensic` JSON case files.
 
-### 5. 📱 Air-Gapped Offline PWA (Progressive Web App)
+### 7. 📱 Air-Gapped Offline PWA (Progressive Web App)
 - **100% Offline Capability**: Includes Web App Manifest and Service Worker caching so field agents can run MetaForensic as a standalone desktop/mobile app in isolated air-gapped labs.
 
-### 6. 🔬 Advanced Pixel & Visual Forensics
+### 8. 🔬 Advanced Pixel & Visual Forensics
 - **Color Channel Isolation**: Split images into Red, Green, Blue, Alpha, Hue, Saturation, Value, Y (Luminance), Cb, and Cr channels to spot localized edits.
 - **Luminance & Sobel Gradient Map**: Analyze lighting direction and shadow boundary consistency across subjects.
 - **Error Level Analysis (ELA)**: Computes re-compression heatmaps to reveal edited regions.
 - **Interactive Pixel Loupe / Magnifier**: Real-time cursor lens with 10x zoom, RGB values, hex codes (`#FF5733`), and pixel grid alignment.
 
-### 7. 📑 Deep Metadata & Platform Fingerprinting
+### 9. 📑 Deep Metadata & Platform Fingerprinting
 - **Searchable Tag Explorer**: Live search filter across raw EXIF, XMP, IPTC, ICC, and Photoshop tags with 1-click tag copy.
 - **Platform Stripping Fingerprint Detector**: Automatically identifies platform signatures (*WhatsApp, Telegram, Facebook/Instagram CDN, Twitter, Adobe Photoshop, GIMP, Apple iOS*).
 
-### 8. 🛡️ Steganography & Binary Inspection
+### 10. 🛡️ Steganography & Binary Inspection
 - **LSB Bit-Plane Stego Visualizer**: Inspect bit planes (Bit 0..7) across channels to expose hidden payload images or encrypted data.
 - **Hex Viewer & ASCII String Extractor**: Interactive offset byte viewer and automated ASCII string parser.
 - **PNG & WebP Chunk Inspector**: Inspects PNG (`IHDR`, `tEXt`, `IDAT`, `IEND`) and WebP RIFF blocks for appended hidden payloads.
 
-### 9. ⚔️ Dual Image Compare & Batch Analysis
+### 11. ⚔️ Dual Image Compare & Batch Analysis
 - **Side-by-Side Curtain Slider**: Interactive comparison split slider.
 - **XOR Pixel Difference Heatmap**: Highlights exact pixel-level differences between original and edited images.
 - **Multi-File Batch Folder Analysis**: Batch dropzone with cross-file perceptual hash duplicate matching and CSV summary exports.
@@ -143,25 +150,6 @@ MetaForensic uses a multi-stage parallel analysis pipeline running entirely with
        │ Consolidated Forensic Dashboard │
        └──────────────────────────────┘
 ```
-
----
-
-## 🚀 Future Technical Roadmap (MetaForensic v4.0)
-
-The following advanced modules are planned for future major releases:
-
-### 🤖 AI & Synthetic Media Forensics
-- **Client-Side AI Deepfake Detector (`ONNX.js`)**: Run local WebAssembly neural networks to spot synthetic AI images (Midjourney, DALL-E 3, Flux, Stable Diffusion).
-- **PRNU Camera Ballistic Fingerprinting**: Extract microscopic sensor noise patterns (Photo-Response Non-Uniformity) to match evidence photos back to a specific physical camera sensor.
-
-### 🎥 Media & Container Expansion
-- **Video & Audio Container Inspector**: Support MP4, MOV, and WAV containers to extract frame rates, audio codecs, and embedded camera metadata streams.
-- **JPEG DQT Quantization Matrix Profiler**: Extract raw Define Quantization Tables (DQT) to detect double-JPEG compression passes and match quality matrices against known camera models.
-
-### 🔏 Cryptographic & Steganography Advanced Analysis
-- **C2PA / CAI Cryptographic Signature Verification**: Validate Content Authenticity Initiative (C2PA) cryptographic manifests embedded by modern Leica, Sony, and Nikon cameras.
-- **Steganography Payload Extractor & Decryptor**: Extract hidden files embedded inside LSB channels with optional AES-256 / XOR password decryption.
-- **Copy-Move & Clone Detection Vector Map**: Run ORB/SIFT keypoint matching on canvas to highlight cloned pixel regions with visual connecting vectors.
 
 ---
 
