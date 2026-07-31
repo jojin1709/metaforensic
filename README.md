@@ -3,6 +3,8 @@
 
 <div align="center">
 
+<img src="./assets/logo.png" alt="MetaForensic Logo" width="120" style="border-radius: 24px;" />
+
 # 🔍 MetaForensic — Browser Image Forensics & OSINT Suite
 
 <p align="center">

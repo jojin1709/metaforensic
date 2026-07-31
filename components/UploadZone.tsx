@@ -120,14 +120,13 @@ export default function UploadZone({ onFile }: Props) {
           />
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-safelight/20 blur-xl group-hover:bg-safelight/30 transition-colors" />
-              <div className="relative w-16 h-16 rounded-full border border-panelBorder bg-void flex items-center justify-center">
-                {isDragging ? (
-                  <ScanEye size={26} className="text-safelight" />
-                ) : (
-                  <UploadCloud size={24} className="text-data" />
-                )}
-              </div>
+              <div className="absolute inset-0 rounded-2xl bg-safelight/20 blur-xl group-hover:bg-safelight/30 transition-colors" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="MetaForensic Logo"
+                className="relative w-16 h-16 rounded-2xl object-cover border border-safelightDim/50 shadow-2xl transition-transform group-hover:scale-105"
+              />
             </div>
             <div>
               <p className="font-medium text-paper">

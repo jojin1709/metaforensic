@@ -16,9 +16,8 @@ export default function Home() {
       {/* Main Header Bar */}
       <header className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-4 border-b border-panelBorder/60 mb-6">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-safelight/10 border border-safelightDim flex items-center justify-center">
-            <ScanEye size={16} className="text-safelight" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="MetaForensic Logo" className="w-8 h-8 rounded-lg object-cover border border-safelightDim/50 shadow-md" />
           <span className="font-display font-semibold tracking-tight text-paper text-lg">MetaForensic</span>
         </div>
 
