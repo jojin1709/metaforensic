@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ScanEye, UploadCloud, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ScanEye, UploadCloud, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
+import { validateFileSecurity } from "@/lib/security";
 
 interface Props {
   onFile: (file: File) => void;
@@ -16,12 +17,22 @@ export default function UploadZone({ onFile }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const validateAndProcess = useCallback(
-    (file: File) => {
+    async (file: File) => {
       setErrorMsg(null);
+
+      // 1. File Size Validation
       if (file.size > MAX_FILE_SIZE) {
         setErrorMsg(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the 25MB limit.`);
         return;
       }
+
+      // 2. Strict Security Check (Block PHP, web shells, RCE scripts & magic byte mismatch)
+      const secCheck = await validateFileSecurity(file);
+      if (!secCheck.isAllowed) {
+        setErrorMsg(secCheck.reason || "Security policy violation: file rejected.");
+        return;
+      }
+
       onFile(file);
     },
     [onFile]
@@ -32,7 +43,7 @@ export default function UploadZone({ onFile }: Props) {
       e.preventDefault();
       setIsDragging(false);
       const file = e.dataTransfer.files?.[0];
-      if (file && file.type.startsWith("image/")) validateAndProcess(file);
+      if (file) validateAndProcess(file);
     },
     [validateAndProcess]
   );
@@ -69,7 +80,7 @@ export default function UploadZone({ onFile }: Props) {
       <div className="relative max-w-3xl mx-auto px-6 text-center">
         <div className="inline-flex items-center gap-2 text-xs font-mono text-data/80 border border-dataDim/50 bg-data/5 rounded-full px-3 py-1 mb-8">
           <ShieldCheck size={14} />
-          <span>100% client-side · your images never leave this browser</span>
+          <span>100% client-side · zero server execution · secure browser sandbox</span>
         </div>
 
         <h1 className="font-display text-4xl md:text-6xl font-semibold tracking-tight text-paper leading-[1.05]">
@@ -85,8 +96,8 @@ export default function UploadZone({ onFile }: Props) {
         </p>
 
         {errorMsg && (
-          <div className="mt-6 p-3 rounded-xl bg-safelight/10 border border-safelight/40 text-safelight font-mono text-xs inline-flex items-center gap-2">
-            <AlertTriangle size={15} /> {errorMsg}
+          <div className="mt-6 p-3 rounded-xl bg-safelight/10 border border-safelight/40 text-safelight font-mono text-xs inline-flex items-center gap-2 max-w-lg mx-auto text-left shadow-lg">
+            <AlertTriangle size={16} className="shrink-0" /> {errorMsg}
           </div>
         )}
 
@@ -111,7 +122,7 @@ export default function UploadZone({ onFile }: Props) {
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/tiff,image/heic"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -130,9 +141,12 @@ export default function UploadZone({ onFile }: Props) {
             </div>
             <div>
               <p className="font-medium text-paper">
-                {isDragging ? "Drop it — running the scan" : "Drag a photo here, paste from clipboard, or click"}
+                {isDragging ? "Drop it — running security scan" : "Drag a photo here, paste from clipboard, or click"}
               </p>
               <p className="text-sm text-muted mt-1">JPEG · PNG · HEIC · TIFF — up to 25MB</p>
+              <p className="text-[11px] text-muted/60 mt-1 flex items-center justify-center gap-1">
+                <Lock size={11} className="text-data" /> Executable scripts & web shells automatically blocked
+              </p>
             </div>
           </div>
         </motion.div>
