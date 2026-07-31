@@ -136,6 +136,37 @@ MetaForensic uses a multi-stage parallel analysis pipeline running entirely with
 
 ---
 
+## 🚀 MetaForensic v3.0 — Future Technical Roadmap
+
+The following advanced forensic modules and OSINT features are planned for future major releases:
+
+### 🤖 AI & Synthetic Media Forensics
+- **Client-Side AI Deepfake Detector (`ONNX.js`)**: Run local WebAssembly neural networks to spot synthetic AI images (Midjourney, DALL-E 3, Flux, Stable Diffusion).
+- **PRNU Camera Ballistic Fingerprinting**: Extract microscopic sensor noise patterns (Photo-Response Non-Uniformity) to match evidence photos back to a specific physical camera sensor.
+
+### 🎥 Media & Container Expansion
+- **Video & Audio Container Inspector**: Support MP4, MOV, and WAV containers to extract frame rates, audio codecs, and embedded camera metadata streams.
+- **JPEG DQT Quantization Matrix Profiler**: Extract raw Define Quantization Tables (DQT) to detect double-JPEG compression passes and match quality matrices against known camera models.
+
+### ☀️ OSINT & Environmental Intelligence
+- **Solar Angle & Shadow Verification (`SunCalc`)**: Calculate solar elevation and azimuth based on GPS coordinates and capture timestamps to mathematically audit shadow consistency.
+- **Historical Weather & Satellite Cross-Check**: Query historical weather logs for the exact time and location to verify cloud cover, rain, and temperature depicted in evidence photos.
+- **One-Click Reverse Image Search Shortcuts**: Compute perceptual feature vectors and generate direct OSINT search queries for Google Lens, Yandex, TinEye, and PimEyes.
+- **Camera Serial Number OSINT Search**: Extract camera body and lens serial numbers to query stolen camera registries (StolenCameraFinder / CamTrace).
+
+### 🔏 Cryptographic & Steganography Advanced Analysis
+- **C2PA / CAI Cryptographic Signature Verification**: Validate Content Authenticity Initiative (C2PA) cryptographic manifests embedded by modern Leica, Sony, and Nikon cameras.
+- **Steganography Payload Extractor & Decryptor**: Extract hidden files embedded inside LSB channels with optional AES-256 / XOR password decryption.
+- **Copy-Move & Clone Detection Vector Map**: Run ORB/SIFT keypoint matching on canvas to highlight cloned pixel regions with visual connecting vectors.
+
+### ⚡ Performance & Offline Air-Gapped Field Lab
+- **Web Worker Offload Threading**: Move ELA, Sobel, and channel splitting to background Web Workers for async processing of 50MB+ RAW photos.
+- **Air-Gapped Offline PWA (Progressive Web App)**: Service Worker caching allowing field agents to run MetaForensic 100% offline in isolated forensic labs.
+- **Optical Character Recognition (OCR)**: Integrated Tesseract.js engine to extract text, street signs, and license plates inside the browser.
+- **Legal PDF Dossier & Encrypted Case Files (`.metaforensic`)**: Export encrypted project bundles and generate court-admissible legal PDF reports with digital SHA-256 signatures.
+
+---
+
 ## Security & Privacy Model
 
 - **Zero Server Uploads**: Images uploaded to MetaForensic are parsed in-memory using browser Web APIs (`FileReader`, `HTMLCanvasElement`, `WebAssembly`).
