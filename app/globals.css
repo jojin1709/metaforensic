@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #0b0c0e !important;
+  color: #e7e7e5 !important;
+  min-height: 100vh;
+}
+
+::selection {
+  background: #ff4d3d;
+  color: #0b0c0e;
+}
+
+.bg-grid-fade {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+}
+
+.data-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.data-scrollbar::-webkit-scrollbar-track {
+  background: #131518;
+}
+.data-scrollbar::-webkit-scrollbar-thumb {
+  background: #22262b;
+  border-radius: 3px;
+}
+
+/* focus visibility for accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #ff4d3d;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.leaflet-container {
+  background: #131518 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
