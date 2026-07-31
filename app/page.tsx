@@ -70,8 +70,26 @@ export default function Home() {
           public OpenStreetMap Nominatim API, which does receive the coordinates found in a
           photo's metadata (not the image itself) purely to resolve a place name.
         </p>
-        <p className="text-xs font-mono text-paper font-semibold">
-          Developed with ❤️ by <span className="text-safelight">JOJIN JOHN</span>
+        <p className="text-xs font-mono text-paper font-semibold flex flex-wrap items-center gap-2.5">
+          <span>Developed with ❤️ by <span className="text-safelight font-bold">JOJIN JOHN</span></span>
+          <span className="text-muted">•</span>
+          <a
+            href="https://www.linkedin.com/in/jojin-john/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-safelight hover:underline font-bold"
+          >
+            LinkedIn
+          </a>
+          <span className="text-muted">•</span>
+          <a
+            href="https://github.com/jojin1709"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-data hover:underline font-bold"
+          >
+            GitHub
+          </a>
         </p>
       </footer>
     </main>

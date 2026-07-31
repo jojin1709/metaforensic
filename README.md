@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <b>Developed with ❤️ by <a href="https://github.com/jojin1709">JOJIN JOHN</a></b>
+  <b>Developed with ❤️ by <a href="https://github.com/jojin1709">JOJIN JOHN</a> • <a href="https://www.linkedin.com/in/jojin-john/">LinkedIn Profile</a></b>
 </p>
 
 <p align="center">
@@ -175,7 +175,7 @@ The following advanced modules are planned for future major releases:
 ## Author & Credits
 
 <p align="center">
-  <b>Developed & Maintained by <a href="https://github.com/jojin1709">JOJIN JOHN</a></b>
+  <b>Developed & Maintained by <a href="https://github.com/jojin1709">JOJIN JOHN</a> • Connect on <a href="https://www.linkedin.com/in/jojin-john/">LinkedIn</a></b>
 </p>
 
 ## License

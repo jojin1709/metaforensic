@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Binary, Eye, FileText, Layers } from "lucide-react";
+import { Binary, Eye, FileText, Layers, ShieldAlert, Cpu } from "lucide-react";
 import Card from "./Card";
 import { renderLSBBitPlane, extractBinaryStrings, getHexDump, HexRow } from "@/lib/stego";
 import { inspectImageChunks, ChunkResult } from "@/lib/chunkInspector";
+import { parseJpegDqt, DqtResult } from "@/lib/dqtProfiler";
+import { inspectC2paManifest, C2paResult } from "@/lib/c2paVerifier";
 
 interface Props {
   file: File;
@@ -12,7 +14,7 @@ interface Props {
 }
 
 export default function StegoHexPanel({ file, img }: Props) {
-  const [activeTab, setActiveTab] = useState<"lsb" | "hex" | "strings" | "chunks">("lsb");
+  const [activeTab, setActiveTab] = useState<"lsb" | "dqt" | "c2pa" | "hex" | "strings" | "chunks">("lsb");
 
   // Stego LSB state
   const [channel, setChannel] = useState<"R" | "G" | "B" | "RGB">("R");
@@ -23,6 +25,8 @@ export default function StegoHexPanel({ file, img }: Props) {
   const [hexRows, setHexRows] = useState<HexRow[]>([]);
   const [asciiStrings, setAsciiStrings] = useState<string[]>([]);
   const [chunkResult, setChunkResult] = useState<ChunkResult | null>(null);
+  const [dqtResult, setDqtResult] = useState<DqtResult | null>(null);
+  const [c2paResult, setC2paResult] = useState<C2paResult | null>(null);
 
   useEffect(() => {
     if (img && activeTab === "lsb") {
@@ -37,6 +41,8 @@ export default function StegoHexPanel({ file, img }: Props) {
       setHexRows(getHexDump(buffer, 512));
       setAsciiStrings(extractBinaryStrings(buffer, 4));
       setChunkResult(inspectImageChunks(buffer, file.name));
+      setDqtResult(parseJpegDqt(buffer));
+      setC2paResult(inspectC2paManifest(buffer));
     });
     return () => {
       cancelled = true;
@@ -44,151 +50,219 @@ export default function StegoHexPanel({ file, img }: Props) {
   }, [file]);
 
   return (
-    <Card icon={Binary} title="Steganography & Binary Inspection" tag="LSB Stego · Hex · Strings · Chunks">
+    <Card icon={Binary} title="Steganography & Advanced Binary Analysis" tag="LSB · DQT · C2PA AI · Hex">
       {/* Sub-Header Tabs */}
       <div className="flex flex-wrap gap-2 mb-4">
         {[
           { id: "lsb", label: "LSB Stego Bit-Plane", icon: Eye },
+          { id: "dqt", label: "JPEG DQT Quantization", icon: Cpu },
+          { id: "c2pa", label: "C2PA & AI Verifier", icon: ShieldAlert },
           { id: "hex", label: "Embedded Hex Viewer", icon: Binary },
-          { id: "strings", label: "ASCII String Extractor", icon: FileText },
-          { id: "chunks", label: "PNG / WebP Chunk Inspector", icon: Layers },
+          { id: "strings", label: "ASCII Strings", icon: FileText },
+          { id: "chunks", label: "Chunk Inspector", icon: Layers },
         ].map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id as any)}
-              className={`inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg border transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors ${
                 activeTab === t.id
-                  ? "bg-safelight text-void border-safelight"
+                  ? "bg-safelight text-void font-bold border-safelight"
                   : "bg-void border-panelBorder text-muted hover:text-paper"
               }`}
             >
-              <Icon size={13} /> {t.label}
+              <Icon size={14} /> {t.label}
             </button>
           );
         })}
       </div>
 
-      {/* LSB Bit-Plane Stego Viewer */}
+      {/* 1. LSB Stego Bit-Plane View */}
       {activeTab === "lsb" && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-void border border-panelBorder font-mono text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-xl bg-void border border-panelBorder text-xs font-mono">
             <div className="flex items-center gap-2">
-              <span className="text-muted">Target Channel:</span>
-              {(["R", "G", "B", "RGB"] as const).map((c) => (
+              <span className="text-muted">Color Channel:</span>
+              {(["R", "G", "B", "RGB"] as const).map((ch) => (
                 <button
-                  key={c}
-                  onClick={() => setChannel(c)}
-                  className={`px-2 py-0.5 rounded ${
-                    channel === c ? "bg-data text-void font-bold" : "text-muted hover:text-paper"
+                  key={ch}
+                  onClick={() => setChannel(ch)}
+                  className={`px-2.5 py-1 rounded border transition-colors ${
+                    channel === ch ? "bg-safelight text-void font-bold border-safelight" : "bg-panel text-muted border-panelBorder"
                   }`}
                 >
-                  {c}
+                  {ch}
                 </button>
               ))}
             </div>
+
             <div className="flex items-center gap-2">
-              <span className="text-muted">Bit Plane (0 = LSB):</span>
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((b) => (
-                <button
-                  key={b}
-                  onClick={() => setBitPos(b)}
-                  className={`px-2 py-0.5 rounded ${
-                    bitPos === b ? "bg-safelight text-void font-bold" : "text-muted hover:text-paper"
-                  }`}
-                >
-                  Bit {b}
-                </button>
-              ))}
+              <span className="text-muted">Bit Position:</span>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setBitPos(b)}
+                    className={`w-7 h-7 rounded text-xs border flex items-center justify-center transition-colors ${
+                      bitPos === b ? "bg-safelight text-void font-bold border-safelight" : "bg-panel text-muted border-panelBorder"
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+              <span className="text-muted text-[10px] ml-1">({bitPos === 0 ? "LSB - Least Significant" : bitPos === 7 ? "MSB" : `Bit ${bitPos}`})</span>
             </div>
           </div>
 
-          <div className="rounded-xl overflow-hidden border border-panelBorder bg-void max-h-[440px] flex items-center justify-center p-2">
-            {lsbUrl && (
+          <div className="rounded-xl border border-panelBorder bg-void p-2 flex items-center justify-center min-h-[320px]">
+            {lsbUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={lsbUrl} alt="LSB Bit Plane" className="w-full h-auto object-contain max-h-[420px]" />
+              <img src={lsbUrl} alt="LSB Bit Plane" className="w-full h-auto object-contain max-h-[420px] rounded-lg" />
+            ) : (
+              <p className="text-muted text-xs font-mono">Rendering LSB Bit-Plane...</p>
             )}
           </div>
-          <p className="text-xs text-muted leading-relaxed font-mono">
-            Extracts individual binary bit planes. Secret payloads, encrypted text, or hidden watermark images are commonly hidden inside Bit 0 (Least Significant Bit) of color channels.
-          </p>
         </div>
       )}
 
-      {/* Embedded Hex Viewer */}
-      {activeTab === "hex" && (
-        <div className="space-y-2">
-          <div className="rounded-xl border border-panelBorder bg-void p-3 font-mono text-xs overflow-x-auto max-h-[380px] overflow-y-auto">
-            <div className="grid grid-cols-[90px_1fr_160px] gap-4 text-muted pb-2 border-b border-panelBorder font-bold">
-              <span>Offset</span>
-              <span>Hex Dump (First 512 Bytes)</span>
-              <span>ASCII Representation</span>
+      {/* 2. JPEG DQT Quantization Matrix Profiler */}
+      {activeTab === "dqt" && dqtResult && (
+        <div className="space-y-4 font-mono text-xs">
+          <div className="p-3 rounded-xl bg-void border border-panelBorder flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="text-muted block text-[10px]">JPEG DQT Table Profile</span>
+              <span className="text-paper font-bold">{dqtResult.hasDqt ? `Found ${dqtResult.tables.length} Quantization Tables` : "No DQT Tables Present"}</span>
             </div>
-            <div className="divide-y divide-panelBorder/30">
-              {hexRows.map((r, i) => (
-                <div key={i} className="grid grid-cols-[90px_1fr_160px] gap-4 py-1 hover:bg-panel/40">
-                  <span className="text-safelight">{r.offsetStr}</span>
-                  <span className="text-data whitespace-pre">{r.hexStr}</span>
-                  <span className="text-paper">{r.asciiStr}</span>
-                </div>
+            <div>
+              <span className="text-muted block text-[10px]">Estimated Compression Quality</span>
+              <span className="text-safelight font-bold text-sm">~{dqtResult.estimatedQuality}%</span>
+            </div>
+          </div>
+
+          {dqtResult.notes.length > 0 && (
+            <div className="p-3 rounded-xl bg-safelight/10 border border-safelight/40 text-safelight space-y-1">
+              {dqtResult.notes.map((n, i) => (
+                <p key={i}>• {n}</p>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* ASCII String Extractor */}
-      {activeTab === "strings" && (
-        <div className="space-y-2 font-mono text-xs">
-          <p className="text-muted mb-2">Extracting embedded human-readable ASCII strings (minimum length 4 chars):</p>
-          <div className="rounded-xl border border-panelBorder bg-void p-3 max-h-[360px] overflow-y-auto space-y-1">
-            {asciiStrings.length > 0 ? (
-              asciiStrings.map((s, i) => (
-                <div key={i} className="py-0.5 text-data break-all hover:bg-panel/50 px-2 rounded">
-                  <span className="text-muted/60 mr-3">[{i + 1}]</span>
-                  {s}
+          <div className="grid md:grid-cols-2 gap-4">
+            {dqtResult.tables.map((t) => (
+              <div key={t.id} className="p-3 rounded-xl bg-void border border-panelBorder space-y-2">
+                <h4 className="font-bold text-safelight text-xs">Table #{t.id} ({t.type} Matrix)</h4>
+                <div className="grid grid-cols-8 gap-1 text-[10px] text-center font-mono text-paper">
+                  {t.table.map((val, idx) => (
+                    <span key={idx} className="p-1 rounded bg-panel border border-panelBorder/50">
+                      {val}
+                    </span>
+                  ))}
                 </div>
-              ))
-            ) : (
-              <p className="text-muted">No embedded ASCII strings found.</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* PNG / WebP Chunk Inspector */}
-      {activeTab === "chunks" && chunkResult && (
-        <div className="space-y-3 font-mono text-xs">
-          <div className="flex items-center justify-between p-2.5 rounded-lg bg-void border border-panelBorder">
-            <span className="text-paper font-bold">Detected Container: {chunkResult.format}</span>
-            <span className="text-muted">{chunkResult.chunks.length} chunks parsed</span>
-          </div>
-
-          <div className="space-y-1">
-            {chunkResult.notes.map((n, i) => (
-              <p key={i} className="text-safelight">{n}</p>
+              </div>
             ))}
           </div>
+        </div>
+      )}
 
-          <div className="rounded-xl border border-panelBorder bg-void max-h-[340px] overflow-y-auto divide-y divide-panelBorder/30">
-            {chunkResult.chunks.length > 0 ? (
-              chunkResult.chunks.map((c, i) => (
-                <div key={i} className="p-2.5 flex items-start justify-between gap-3 hover:bg-panel/40">
-                  <div>
-                    <span className={`font-bold mr-2 ${c.isStandard ? "text-data" : "text-safelight"}`}>{c.name}</span>
-                    <span className="text-paper">{c.description}</span>
-                  </div>
-                  <div className="text-right text-muted shrink-0">
-                    <span>{c.size} bytes</span>
-                    <span className="block text-[10px]">offset: 0x{c.offset.toString(16)}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="p-4 text-muted text-center">No PNG/WebP chunk structures detected for this file format.</p>
-            )}
+      {/* 3. C2PA & AI Synthetic Media Verifier */}
+      {activeTab === "c2pa" && c2paResult && (
+        <div className="space-y-4 font-mono text-xs">
+          <div className={`p-4 rounded-xl border ${c2paResult.isAiGenerated ? "bg-safelight/10 border-safelight/50 text-safelight" : "bg-void border-panelBorder text-paper"}`}>
+            <h4 className="font-bold text-sm mb-1 flex items-center gap-2">
+              <ShieldAlert size={16} /> {c2paResult.isAiGenerated ? "Synthetic AI Generation Signature Detected!" : "C2PA Provenance Signature Status"}
+            </h4>
+            {c2paResult.claimGenerator && <p className="text-data font-bold">Engine: {c2paResult.claimGenerator}</p>}
+            <div className="mt-2 space-y-1 text-muted text-xs">
+              {c2paResult.details.map((d, i) => (
+                <p key={i}>• {d}</p>
+              ))}
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* 4. Hex Viewer */}
+      {activeTab === "hex" && (
+        <div className="rounded-xl border border-panelBorder bg-void p-3 font-mono text-xs overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-muted border-b border-panelBorder/40">
+                <th className="pb-2 font-bold w-20">Offset</th>
+                <th className="pb-2 font-bold">Hex Bytes (First 512 Bytes)</th>
+                <th className="pb-2 font-bold w-36">ASCII</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-panelBorder/20 text-muted">
+              {hexRows.map((row) => (
+                <tr key={row.offsetStr} className="hover:text-paper transition-colors">
+                  <td className="py-1 text-safelight font-bold">{row.offsetStr}</td>
+                  <td className="py-1 font-mono tracking-wider text-data">{row.hexStr}</td>
+                  <td className="py-1 text-paper">{row.asciiStr}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 5. ASCII Strings */}
+      {activeTab === "strings" && (
+        <div className="rounded-xl border border-panelBorder bg-void p-3 font-mono text-xs space-y-1 max-h-96 overflow-y-auto">
+          <p className="text-muted text-[10px] mb-2 border-b border-panelBorder/40 pb-1">Extracted readable ASCII strings (&gt;= 4 characters):</p>
+          {asciiStrings.length > 0 ? (
+            asciiStrings.map((s, i) => (
+              <p key={i} className="text-paper break-all hover:bg-panel p-0.5 rounded transition-colors">
+                {s}
+              </p>
+            ))
+          ) : (
+            <p className="text-muted">No ASCII strings found.</p>
+          )}
+        </div>
+      )}
+
+      {/* 6. Chunks Inspector */}
+      {activeTab === "chunks" && chunkResult && (
+        <div className="space-y-3 font-mono text-xs">
+          <div className="p-3 rounded-xl bg-void border border-panelBorder">
+            <span className="text-muted block text-[10px]">Detected Container Signature</span>
+            <span className="text-safelight font-bold">{chunkResult.format} Container</span>
+          </div>
+
+          {chunkResult.notes.length > 0 && (
+            <div className="p-3 rounded-xl bg-panel border border-panelBorder text-muted space-y-1">
+              {chunkResult.notes.map((n, i) => (
+                <p key={i}>• {n}</p>
+              ))}
+            </div>
+          )}
+
+          {chunkResult.chunks.length > 0 && (
+            <div className="rounded-xl border border-panelBorder bg-void overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-panelBorder text-muted bg-panel/50">
+                    <th className="p-2.5 font-bold">Chunk</th>
+                    <th className="p-2.5 font-bold">Size</th>
+                    <th className="p-2.5 font-bold">Offset</th>
+                    <th className="p-2.5 font-bold">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-panelBorder/30">
+                  {chunkResult.chunks.map((c, i) => (
+                    <tr key={i} className={c.isStandard ? "hover:bg-panel/40" : "bg-safelight/10 text-safelight"}>
+                      <td className="p-2.5 font-bold text-data">{c.name}</td>
+                      <td className="p-2.5 text-muted">{c.size} B</td>
+                      <td className="p-2.5 text-muted">0x{c.offset.toString(16)}</td>
+                      <td className="p-2.5 text-paper">{c.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </Card>
