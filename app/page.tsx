@@ -20,9 +20,6 @@ export default function Home() {
             <ScanEye size={16} className="text-safelight" />
           </div>
           <span className="font-display font-semibold tracking-tight text-paper text-lg">MetaForensic</span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-safelight/10 text-safelight border border-safelight/20">
-            PRO LAB v2.0
-          </span>
         </div>
 
         {/* Global Mode Switcher */}
